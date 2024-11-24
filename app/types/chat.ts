@@ -7,11 +7,16 @@ import type {
 export interface Env {
     rooms: DurableObjectNamespace;
     limiters: DurableObjectNamespace;
-    DEBUG?: string;  // Optional debug flag
+    DEBUG?: string;
 }
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
-export type SessionData = z.infer<typeof sessionDataSchema>;
+export interface SessionData {
+    limiterId: string;
+    blockedMessages: string[];
+    name?: string;
+    quit?: boolean;
+}
 
 export type ErrorResponse = {
     error: string;

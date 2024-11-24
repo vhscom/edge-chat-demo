@@ -1,14 +1,12 @@
-import { validateOrThrow, createErrorResponse } from '~/utils/validation';
-import { handleErrors } from '~/utils/errors';
-import type { Env, ChatMessage, SessionData, WebSocketMessage } from '~/types/chat';
-import { RateLimiterClient } from '../RateLimiter';
+import type { Env, ChatMessage, SessionData } from '~/types/chat';
+import { validateOrThrow } from '~/utils/validation';
 import {
     chatMessageSchema,
     userInfoSchema,
     webSocketAttachmentSchema
 } from './schemas';
 
-export class ChatRoom {
+export class ChatRoom implements DurableObject {
     private readonly sessions: Map<WebSocket, SessionData>;
     private lastTimestamp: number;
     private readonly storage: DurableObjectStorage;
@@ -22,6 +20,10 @@ export class ChatRoom {
         this.sessions = new Map();
         this.lastTimestamp = 0;
 
+        this.initializeWebSockets();
+    }
+
+    private initializeWebSockets(): void {
         this.state.getWebSockets().forEach((webSocket) => {
             try {
                 const meta = validateOrThrow(
@@ -29,12 +31,8 @@ export class ChatRoom {
                     webSocket.deserializeAttachment()
                 );
 
-                const limiterId = this.env.limiters.idFromString(meta.limiterId);
-                const limiter = this.createLimiter(limiterId, webSocket);
-
                 this.sessions.set(webSocket, {
-                    ...meta,
-                    limiter,
+                    limiterId: meta.limiterId,
                     blockedMessages: []
                 });
             } catch (err) {
@@ -44,87 +42,146 @@ export class ChatRoom {
         });
     }
 
-    async webSocketMessage(webSocket: WebSocket, msg: string): Promise<void> {
-        try {
-            const session = this.sessions.get(webSocket);
-            if (!session) {
-                throw new Error("Session not found");
-            }
+    async fetch(request: Request): Promise<Response> {
+        const url = new URL(request.url);
 
-            if (session.quit) {
-                webSocket.close(1011, "WebSocket broken.");
-                return;
-            }
+        switch (url.pathname) {
+            case "/websocket": {
+                if (request.headers.get("Upgrade") !== "websocket") {
+                    return new Response("Expected WebSocket upgrade", { status: 400 });
+                }
 
-            if (!session.limiter.checkLimit()) {
-                this.sendError(webSocket, "Your IP is being rate-limited, please try again later.");
-                return;
-            }
+                const ip = request.headers.get("CF-Connecting-IP");
+                if (!ip) {
+                    return new Response("Missing client IP", { status: 400 });
+                }
 
-            const data = validateOrThrow(chatMessageSchema, JSON.parse(msg));
+                const pair = new WebSocketPair();
 
-            if (!session.name) {
-                // Handle initial user info message
-                const userInfo = validateOrThrow(userInfoSchema, data);
-                session.name = String(userInfo.name || "anonymous");
+                // Add message event listener
+                pair[1].addEventListener("message",
+                    event => void this.webSocketMessage(pair[1], event.data));
 
-                webSocket.serializeAttachment({
-                    ...webSocket.deserializeAttachment(),
-                    name: session.name
+                await this.handleSession(pair[1], ip);
+
+                return new Response(null, {
+                    status: 101,
+                    webSocket: pair[0]
                 });
-
-                if (session.name.length > 32) {
-                    this.sendError(webSocket, "Name too long.");
-                    webSocket.close(1009, "Name too long.");
-                    return;
-                }
-
-                // Send queued messages
-                if (session.blockedMessages) {
-                    session.blockedMessages.forEach(queued => {
-                        webSocket.send(queued);
-                    });
-                    session.blockedMessages = undefined;
-                }
-
-                this.broadcast({ joined: session.name });
-                webSocket.send(JSON.stringify({ ready: true }));
-                return;
             }
-
-            // Handle chat message
-            if (!data.message) {
-                throw new Error("Message is required");
-            }
-
-            const messageData: ChatMessage = {
-                name: session.name,
-                message: data.message,
-                timestamp: Math.max(Date.now(), this.lastTimestamp + 1)
-            };
-
-            this.lastTimestamp = messageData.timestamp;
-
-            const dataStr = JSON.stringify(messageData);
-            this.broadcast(dataStr);
-
-            // Store in chat history
-            const key = new Date(messageData.timestamp).toISOString();
-            await this.storage.put(key, dataStr);
-
-        } catch (err) {
-            this.sendError(
-                webSocket,
-                err instanceof Error ? err.message : "An error occurred"
-            );
+            default:
+                return new Response("Not found", { status: 404 });
         }
     }
 
-    private sendError(webSocket: WebSocket, error: string): void {
-        webSocket.send(JSON.stringify(createErrorResponse(error)));
+    private async handleSession(webSocket: WebSocket, ip: string): Promise<void> {
+        this.state.acceptWebSocket(webSocket);
+
+        const session: SessionData = {
+            limiterId: this.env.limiters.idFromName(ip).toString(),
+            blockedMessages: []
+        };
+
+        webSocket.serializeAttachment({
+            limiterId: session.limiterId
+        });
+
+        this.sessions.set(webSocket, session);
+
+        // Queue existing users
+        for (const otherSession of this.sessions.values()) {
+            if (otherSession.name) {
+                session.blockedMessages.push(JSON.stringify({ joined: otherSession.name }));
+            }
+        }
+
+        // Load chat history
+        const storage = await this.storage.list<string>({
+            reverse: true,
+            limit: 100
+        });
+
+        const backlog = [...storage.values()];
+        backlog.reverse();
+        backlog.forEach(value => {
+            session.blockedMessages.push(value);
+        });
     }
 
-    private broadcast(message: string | WebSocketMessage): void {
+    private async handleMessage(session: SessionData, webSocket: WebSocket, msg: string): Promise<void> {
+        const data = validateOrThrow(chatMessageSchema, JSON.parse(msg));
+
+        if (!session.name) {
+            // Handle initial user info message
+            const userInfo = validateOrThrow(userInfoSchema, data);
+            session.name = String(userInfo.name || "anonymous");
+
+            webSocket.serializeAttachment({
+                ...webSocket.deserializeAttachment(),
+                name: session.name
+            });
+
+            if (session.name.length > 32) {
+                webSocket.send(JSON.stringify({ error: "Name too long." }));
+                webSocket.close(1009, "Name too long.");
+                return;
+            }
+
+            // Send queued messages
+            if (session.blockedMessages.length > 0) {
+                session.blockedMessages.forEach(queued => {
+                    webSocket.send(queued);
+                });
+                session.blockedMessages = [];
+            }
+
+            this.broadcast({ joined: session.name });
+            webSocket.send(JSON.stringify({ ready: true }));
+            return;
+        }
+
+        // Ensure message is present
+        if (!data.message) {
+            throw new Error("Message is required");
+        }
+
+        // Handle chat message
+        const timestamp = Math.max(Date.now(), this.lastTimestamp + 1);
+        const messageData: Required<Pick<ChatMessage, 'name' | 'message' | 'timestamp'>> = {
+            name: session.name,
+            message: data.message,
+            timestamp
+        };
+
+        this.lastTimestamp = timestamp;
+
+        const dataStr = JSON.stringify(messageData);
+        this.broadcast(dataStr);
+
+        // Store in chat history
+        const key = new Date(timestamp).toISOString();
+        await this.storage.put(key, dataStr);
+    }
+
+    async webSocketMessage(webSocket: WebSocket, msg: string): Promise<void> {
+        const session = this.sessions.get(webSocket);
+        if (!session) return;
+
+        if (session.quit) {
+            webSocket.close(1011, "WebSocket broken.");
+            return;
+        }
+
+        try {
+            await this.handleMessage(session, webSocket, msg);
+        } catch (err) {
+            webSocket.send(JSON.stringify({
+                error: err instanceof Error ? err.message : "An error occurred"
+            }));
+        }
+    }
+
+    private broadcast(message: string | ChatMessage): void {
         const messageStr = typeof message === "string" ? message : JSON.stringify(message);
         const quitters: SessionData[] = [];
 
@@ -137,7 +194,7 @@ export class ChatRoom {
                     quitters.push(session);
                     this.sessions.delete(webSocket);
                 }
-            } else if (session.blockedMessages) {
+            } else {
                 session.blockedMessages.push(messageStr);
             }
         });
@@ -148,6 +205,4 @@ export class ChatRoom {
             }
         });
     }
-
-    // ... rest of the implementation remains the same ...
 }
