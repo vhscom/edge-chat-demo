@@ -7,6 +7,7 @@ import {
     Scripts,
     ScrollRestoration,
 } from "@remix-run/react";
+import { Providers } from "~/components/Providers";
 import styles from "~/styles/tailwind.css";
 
 export const links: LinksFunction = () => [
@@ -15,7 +16,6 @@ export const links: LinksFunction = () => [
 
 export const meta: MetaFunction = () => [
     { charset: "utf-8" },
-    { title: "Edge Chat Demo" },
     { name: "viewport", content: "width=device-width,initial-scale=1" }
 ];
 
@@ -27,7 +27,9 @@ export default function App() {
             <Links />
         </head>
         <body>
-        <Outlet />
+        <Providers>
+            <Outlet />
+        </Providers>
         <ScrollRestoration />
         <Scripts />
         <LiveReload />

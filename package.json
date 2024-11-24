@@ -11,6 +11,11 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.1",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-popover": "^1.1.2",
+    "@radix-ui/react-scroll-area": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.1.4",
     "@remix-run/cloudflare": "^2.5.0",
     "@remix-run/react": "^2.5.0",
     "isbot": "^4",

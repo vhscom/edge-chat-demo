@@ -7,12 +7,12 @@ A real-time chat application built with Cloudflare Workers, Durable Objects, Web
 - Real-time messaging using WebSockets
 - Public and private chat rooms
 - Message persistence using Durable Objects
-- Rate limiting to prevent spam
-- User presence tracking
-- Message history
-- TypeScript type safety
-- Zod runtime validation
+- State management with Zustand
+- Runtime validation with Zod
+- Type safety with TypeScript
 - Responsive UI with Tailwind CSS
+- Time-based message grouping
+- Relative and absolute timestamps
 
 ## Project Structure
 
@@ -21,81 +21,83 @@ app/
 ├── components/
 │   └── Chat/
 │       ├── index.ts
-│       ├── Chat.tsx         # Main chat container
-│       ├── ChatRoom.tsx     # Room management
-│       ├── ChatInput.tsx    # Message input
-│       ├── ChatMessages.tsx # Message display
-│       ├── RoomHeader.tsx   # Room info & controls
-│       └── RoomJoin.tsx     # Room joining
+│       ├── Chat.tsx           # Main chat container
+│       ├── ChatRoom.tsx       # Room management
+│       ├── ChatInput.tsx      # Message input
+│       ├── ChatMessage.tsx    # Individual message display
+│       ├── ChatMessages.tsx   # Message list container
+│       └── RoomHeader.tsx     # Room info & controls
 ├── durable-objects/
 │   ├── ChatRoom/
 │   │   ├── index.ts
-│   │   ├── ChatRoom.ts     # Chat room implementation
-│   │   └── schemas.ts      # Zod schemas
+│   │   ├── ChatRoom.ts       # Chat room implementation
+│   │   └── schemas.ts        # Zod schemas
 │   └── RateLimiter/
 │       ├── index.ts
-│       ├── RateLimiter.ts  # Rate limiting logic
-│       ├── client.ts       # Client implementation
-│       └── schemas.ts      # Validation schemas
+│       ├── RateLimiter.ts    # Rate limiting logic
+│       ├── client.ts         # Client implementation
+│       └── schemas.ts        # Validation schemas
 ├── routes/
-│   ├── _index.tsx          # Main chat interface
-│   ├── api.room.tsx        # Room creation
-│   └── api.room.$roomId.tsx # WebSocket handling
+│   ├── _index.tsx            # Main chat interface
+│   ├── api.room.tsx          # Room creation
+│   └── api.room.$roomId.tsx  # WebSocket handling
+├── schemas/
+│   └── chat.ts               # Shared Zod schemas
+├── stores/
+│   └── chatStore.ts          # Zustand state management
 ├── styles/
-│   └── tailwind.css        # Tailwind imports
+│   └── tailwind.css         # Tailwind imports
 ├── types/
-│   └── chat.ts             # Shared TypeScript types
+│   └── chat.ts              # Shared TypeScript types
 └── utils/
-    ├── errors.ts           # Error handling
-    └── validation.ts       # Validation utilities
+    ├── errors.ts            # Error handling
+    ├── format.ts            # Date/time formatting
+    └── validation.ts        # Validation utilities
 ```
 
-## API Routes
+## State Management
 
-### Room Creation
-- `POST /api/room`
-   - Creates a new private room
-   - Returns: Room ID (64-character hex string)
+Uses Zustand for state management with selectors and actions:
 
-### Room Connection
-- `GET /api/room/:roomId/websocket`
-   - Establishes WebSocket connection
-   - Supports both public (named) and private rooms
-   - Handles message routing and persistence
-
-## WebSocket Protocol
-
-Messages are JSON-encoded and follow these formats:
-
-### Client → Server
 ```typescript
-// Join room with username
-{ name: string }
+// Using store with selectors
+const messages = useChatStore(state => state.messages);
+const userCount = useUserCount();
+const { connected, username } = useConnectionStatus();
 
-// Send message
-{ message: string }
+// Actions
+const { setUsername, addMessage, reset } = useChatStore();
 ```
 
-### Server → Client
+## Validation
+
+Runtime validation using Zod schemas:
+
 ```typescript
-// User joined
-{ joined: string }
+// Validate incoming messages
+const message = validateOrThrow(chatMessageSchema, data);
 
-// User left
-{ quit: string }
-
-// Chat message
-{ 
-  name: string,
-  message: string,
-  timestamp: number 
+// Safe parsing with type inference
+const result = safeParse(userSchema, userData);
+if (result.success) {
+  const validUser = result.data;
 }
+```
 
-// Error
-{ error: string }
+## Utility Functions
 
-// Ready confirmation
-{ ready: true }
+### Time Formatting
+```typescript
+// Format timestamp
+formatTime(timestamp)  // "3:45 PM"
+formatTime(timestamp, { showDate: true })  // "Jan 24, 3:45 PM"
+formatTime(timestamp, { showSeconds: true })  // "3:45:30 PM"
+
+// Relative time
+formatRelativeTime(timestamp)  // "2 minutes ago"
+
+// Message grouping
+formatMessageDate(timestamp)  // "Today", "Yesterday", or "January 24, 2024"
 ```
 
 ## Setup & Development
@@ -170,6 +172,9 @@ npm run deploy
 - [ ] Direct messages
 - [ ] Room persistence configuration
 - [ ] Enhanced rate limiting options
+- [ ] Message reactions
+- [ ] Typing indicators
+- [ ] Read receipts
 
 ## Contributing
 
@@ -181,7 +186,7 @@ npm run deploy
 
 ## License
 
-This project is released under the BSD Zero Clause License (0BSD).
+This project is released under the [BSD Zero Clause License (0BSD)](COPYING).
 
 ```
 BSD Zero Clause License (0BSD)
@@ -200,5 +205,4 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-The Zero Clause BSD license is a permissive license that is even more permissive than the MIT license. It allows unlimited freedom with the software without requirements to include the copyright notice, license text, or disclaimer in either source or binary forms.
-
+The Zero Clause BSD license is a permissive license that allows unlimited freedom with the software without requirements to include the copyright notice, license text, or disclaimer in either source or binary forms.

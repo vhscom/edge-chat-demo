@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import * as Popover from '@radix-ui/react-popover';
 import { validate } from "~/utils/validation";
 import { messageContentSchema } from "~/schemas/chat";
 
@@ -30,19 +31,34 @@ export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
 
     return (
         <form onSubmit={handleSubmit} className="p-4 bg-white border-t">
-            {error && (
-                <div className="mb-2 text-sm text-red-600">{error}</div>
-            )}
             <div className="flex space-x-4">
-                <input
-                    type="text"
-                    value={message}
-                    onChange={e => setMessage(e.target.value)}
-                    disabled={disabled}
-                    maxLength={256}
-                    className="flex-1 p-2 border rounded disabled:bg-gray-100"
-                    placeholder={disabled ? "Disconnected..." : "Type a message..."}
-                />
+                <div className="flex-1 relative">
+                    {error && (
+                        <Popover.Root open={!!error}>
+                            <Popover.Trigger asChild>
+                                <span className="absolute -top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+                            </Popover.Trigger>
+                            <Popover.Portal>
+                                <Popover.Content
+                                    className="bg-red-50 border border-red-200 rounded-md p-2 text-sm text-red-600"
+                                    sideOffset={5}
+                                >
+                                    {error}
+                                    <Popover.Arrow className="fill-red-200" />
+                                </Popover.Content>
+                            </Popover.Portal>
+                        </Popover.Root>
+                    )}
+                    <input
+                        type="text"
+                        value={message}
+                        onChange={e => setMessage(e.target.value)}
+                        disabled={disabled}
+                        maxLength={256}
+                        className="w-full p-2 border rounded disabled:bg-gray-100"
+                        placeholder={disabled ? "Disconnected..." : "Type a message..."}
+                    />
+                </div>
                 <button
                     type="submit"
                     disabled={disabled || !message.trim()}
