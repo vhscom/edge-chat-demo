@@ -16,7 +16,8 @@
     "isbot": "^4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "zustand": "^5.0.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231218.0",

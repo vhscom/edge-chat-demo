@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { validate } from "~/utils/validation";
+import { messageContentSchema } from "~/schemas/chat";
 
 interface ChatInputProps {
     onSendMessage: (message: string) => void;
@@ -7,17 +9,30 @@ interface ChatInputProps {
 
 export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
     const [message, setMessage] = useState("");
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        if (message.trim() && !disabled) {
-            onSendMessage(message.trim());
+        setError(null);
+
+        if (disabled || !message.trim()) return;
+
+        try {
+            const validatedMessage = validate(messageContentSchema, message);
+            onSendMessage(validatedMessage);
             setMessage("");
+        } catch (err) {
+            if (err instanceof Error) {
+                setError(err.message);
+            }
         }
     };
 
     return (
         <form onSubmit={handleSubmit} className="p-4 bg-white border-t">
+            {error && (
+                <div className="mb-2 text-sm text-red-600">{error}</div>
+            )}
             <div className="flex space-x-4">
                 <input
                     type="text"

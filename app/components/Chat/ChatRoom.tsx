@@ -1,99 +1,36 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { ChatMessage } from "~/types/chat";
+import { useEffect, useRef } from "react";
+import { useChatStore } from "~/stores/chatStore";
+import { useWebSocket } from "~/hooks/useWebSocket";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 import { RoomHeader } from "./RoomHeader";
 
 interface ChatRoomProps {
-    roomId: string;
     onLeave: () => void;
 }
 
-export function ChatRoom({ roomId, onLeave }: ChatRoomProps) {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [users, setUsers] = useState<Set<string>>(new Set());
-    const [connected, setConnected] = useState(false);
-    const [userName, setUserName] = useState<string | null>(null);
-    const socketRef = useRef<WebSocket | null>(null);
+export function ChatRoom({ onLeave }: ChatRoomProps) {
+    const {
+        roomId,
+        messages,
+        users,
+        connected,
+        username,
+        setUsername
+    } = useChatStore();
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const scrollToBottom = useCallback(() => {
+    // Ensure roomId exists
+    if (!roomId) throw new Error("Room ID is required");
+
+    const { sendMessage } = useWebSocket(roomId);
+
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, []);
+    }, [messages]);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, scrollToBottom]);
-
-    useEffect(() => {
-        const ws = new WebSocket(
-            `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/room/${roomId}/websocket`
-        );
-
-        socketRef.current = ws;
-
-        ws.addEventListener("open", () => {
-            setConnected(true);
-        });
-
-        ws.addEventListener("close", () => {
-            setConnected(false);
-        });
-
-        ws.addEventListener("message", (event) => {
-            const data = JSON.parse(event.data);
-
-            if ("error" in data) {
-                console.error("WebSocket error:", data.error);
-                return;
-            }
-
-            if ("joined" in data) {
-                setUsers(prev => new Set([...prev, data.joined]));
-                return;
-            }
-
-            if ("quit" in data) {
-                setUsers(prev => {
-                    const next = new Set(prev);
-                    next.delete(data.quit);
-                    return next;
-                });
-                return;
-            }
-
-            if ("ready" in data) {
-                console.log("WebSocket ready");
-                return;
-            }
-
-            // Regular chat message
-            setMessages(prev => [...prev, data as ChatMessage]);
-        });
-
-        return () => {
-            ws.close();
-        };
-    }, [roomId]);
-
-    const handleSendMessage = useCallback((message: string) => {
-        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-            return;
-        }
-
-        socketRef.current.send(JSON.stringify({ message }));
-    }, []);
-
-    const handleSetName = useCallback((name: string) => {
-        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-            return;
-        }
-
-        socketRef.current.send(JSON.stringify({ name }));
-        setUserName(name);
-    }, []);
-
-    if (!userName) {
+    if (!username) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
@@ -102,7 +39,7 @@ export function ChatRoom({ roomId, onLeave }: ChatRoomProps) {
                         onSubmit={(e) => {
                             e.preventDefault();
                             const name = new FormData(e.currentTarget).get("name") as string;
-                            if (name) handleSetName(name);
+                            if (name) setUsername(name);
                         }}
                         className="space-y-4"
                     >
@@ -141,7 +78,7 @@ export function ChatRoom({ roomId, onLeave }: ChatRoomProps) {
             />
 
             <ChatInput
-                onSendMessage={handleSendMessage}
+                onSendMessage={sendMessage}
                 disabled={!connected}
             />
         </div>

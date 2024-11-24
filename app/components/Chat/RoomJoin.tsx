@@ -1,14 +1,18 @@
-interface RoomJoinProps {
-    onJoinRoom: (roomId: string) => void;
-}
+import { useChatStore } from "~/stores/chatStore";
+import { validate } from "~/utils/validation";
+import { roomIdSchema } from "~/schemas/chat";
 
-export function RoomJoin({ onJoinRoom }: RoomJoinProps) {
+export function RoomJoin() {
+    const { setRoomId } = useChatStore();
+
     const handleCreatePrivateRoom = async () => {
         try {
             const response = await fetch('/api/room', { method: 'POST' });
             if (!response.ok) throw new Error('Failed to create room');
             const roomId = await response.text();
-            onJoinRoom(roomId);
+            // Validate the room ID before setting it
+            const validatedId = validate(roomIdSchema, roomId);
+            setRoomId(validatedId);
         } catch (err) {
             console.error('Failed to create private room:', err);
         }
@@ -22,8 +26,13 @@ export function RoomJoin({ onJoinRoom }: RoomJoinProps) {
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
-                        const roomId = new FormData(e.currentTarget).get("roomId") as string;
-                        if (roomId) onJoinRoom(roomId);
+                        try {
+                            const roomId = new FormData(e.currentTarget).get("roomId") as string;
+                            const validatedId = validate(roomIdSchema, roomId);
+                            setRoomId(validatedId);
+                        } catch (err) {
+                            console.error('Invalid room ID:', err);
+                        }
                     }}
                     className="space-y-4"
                 >

@@ -1,27 +1,21 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { ChatRoom } from "./ChatRoom";
 import { RoomJoin } from "./RoomJoin";
+import { useChatStore } from "~/stores/chatStore";
 
 export function Chat() {
-    const [roomId, setRoomId] = useState<string | null>(null);
-
-    const handleJoinRoom = useCallback((id: string) => {
-        setRoomId(id);
-    }, []);
+    const { roomId, reset } = useChatStore();
 
     const handleLeaveRoom = useCallback(() => {
-        setRoomId(null);
-    }, []);
+        reset();
+    }, [reset]);
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
             {!roomId ? (
-                <RoomJoin onJoinRoom={handleJoinRoom} />
+                <RoomJoin />
             ) : (
-                <ChatRoom
-                    roomId={roomId}
-                    onLeave={handleLeaveRoom}
-                />
+                <ChatRoom onLeave={handleLeaveRoom} />
             )}
         </div>
     );
