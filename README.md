@@ -14,7 +14,10 @@ app/
     UserList.tsx     # Online users component
   durable-objects/
     ChatRoom.ts      # ChatRoom DO
-    RateLimiter.ts   # RateLimiter DO
+    RateLimiter/
+      index.ts        # exports both classes
+      RateLimiter.ts  # RateLimiter Durable Object implementation
+      client.ts       # RateLimiterClient implementation
 ```
 
 Install fnm (optional but recommended):
