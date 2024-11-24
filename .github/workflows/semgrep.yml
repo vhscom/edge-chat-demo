@@ -1,0 +1,94 @@
+name: Semgrep Security Analysis
+
+on:
+  # Run on all PRs
+  pull_request: {}
+
+  # Allow manual triggering
+  workflow_dispatch: {}
+
+  # Run on main branch pushes
+  push:
+    branches:
+      - main
+
+  # Run daily at midnight UTC
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  semgrep:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    # Skip running on forks since they won't have access to secrets
+    if: github.repository == '<your-username>/edge-chat-demo'
+
+    container:
+      image: semgrep/semgrep
+
+    env:
+      # Use Semgrep Cloud platform
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      # Additional configuration
+      SEMGREP_TIMEOUT: 300
+      SEMGREP_RULES: >-
+        p/typescript
+        p/react
+        p/jwt
+        p/owasp-top-ten
+        p/xss
+        p/nodejs
+        p/cloudflare
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Full git history for better tracking
+          fetch-depth: 0
+
+      - name: Run Semgrep Analysis
+        run: |
+          semgrep ci \
+            --config auto \
+            --severity ERROR \
+            --max-target-bytes 1000000 \
+            --enable-nosem \
+            --no-suppress-errors \
+            --verbose
+
+      # Optional: Post results as PR comment
+      - name: Post Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('semgrep.json')) {
+              const results = JSON.parse(fs.readFileSync('semgrep.json', 'utf8'));
+              if (results.findings.length > 0) {
+                const findings = results.findings.map(f => 
+                  `- **${f.check_id}** in \`${f.path}\`: ${f.message}`
+                ).join('\n');
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.name,
+                  body: `### Semgrep Security Analysis Found Issues:\n\n${findings}`
+                });
+              }
+            }
+
+      # Fail if any high severity issues are found
+      - name: Check Results
+        if: always()
+        run: |
+          if [ -f semgrep.json ]; then
+            HIGH_SEVERITY=$(jq '[.findings[] | select(.severity == "ERROR")] | length' semgrep.json)
+            if [ "$HIGH_SEVERITY" -gt 0 ]; then
+              echo "Found $HIGH_SEVERITY high severity issues"
+              exit 1
+            fi
+          fi

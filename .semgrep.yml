@@ -1,0 +1,42 @@
+# Semgrep Rule Configuration for Edge Chat Demo
+rules:
+  # Security checks
+  - id: edge-chat-websocket-check
+    pattern: new WebSocket($URL)
+    message: Ensure WebSocket URL is properly validated
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  - id: edge-chat-xss
+    patterns:
+      - pattern: innerHTML = $X
+      - pattern: dangerouslySetInnerHTML = $X
+    message: Potential XSS vulnerability
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: edge-chat-message-validation
+    pattern: JSON.parse($MSG)
+    message: Ensure message validation before parsing
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  # Best practices
+  - id: edge-chat-type-check
+    pattern: validateOrThrow($SCHEMA, $DATA)
+    message: Ensure proper type validation
+    languages: [typescript]
+    severity: WARNING
+
+  - id: edge-chat-websocket-error
+    pattern: webSocket.close($CODE, $MSG)
+    message: Review WebSocket error handling
+    languages: [typescript, javascript]
+    severity: INFO
+
+# Ignore patterns
+ignore:
+  - node_modules
+  - build
+  - .cache
+  - public/build

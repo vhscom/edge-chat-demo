@@ -10,49 +10,55 @@ A real-time chat application built with Cloudflare Workers, Durable Objects, Web
 - State management with Zustand
 - Runtime validation with Zod
 - Type safety with TypeScript
-- Responsive UI with Tailwind CSS
+- Accessible UI with Radix UI
+- Styling with Tailwind CSS
+- Continuous security analysis with Semgrep
 - Time-based message grouping
 - Relative and absolute timestamps
 
 ## Project Structure
 
 ```
+.github/
+└── workflows/
+    └── semgrep.yml          # Security analysis workflow
 app/
 ├── components/
-│   └── Chat/
-│       ├── index.ts
-│       ├── Chat.tsx           # Main chat container
-│       ├── ChatRoom.tsx       # Room management
-│       ├── ChatInput.tsx      # Message input
-│       ├── ChatMessage.tsx    # Individual message display
-│       ├── ChatMessages.tsx   # Message list container
-│       └── RoomHeader.tsx     # Room info & controls
+│   ├── Chat/
+│   │   ├── index.ts
+│   │   ├── Chat.tsx         # Main chat container
+│   │   ├── ChatRoom.tsx     # Room management
+│   │   ├── ChatInput.tsx    # Message input
+│   │   ├── ChatMessage.tsx  # Individual message display
+│   │   ├── ChatMessages.tsx # Message list container
+│   │   └── RoomHeader.tsx   # Room info & controls
+│   └── Providers.tsx        # Radix UI providers
 ├── durable-objects/
 │   ├── ChatRoom/
 │   │   ├── index.ts
-│   │   ├── ChatRoom.ts       # Chat room implementation
-│   │   └── schemas.ts        # Zod schemas
+│   │   ├── ChatRoom.ts      # Chat room implementation
+│   │   └── schemas.ts       # Zod schemas
 │   └── RateLimiter/
 │       ├── index.ts
-│       ├── RateLimiter.ts    # Rate limiting logic
-│       ├── client.ts         # Client implementation
-│       └── schemas.ts        # Validation schemas
+│       ├── RateLimiter.ts   # Rate limiting logic
+│       ├── client.ts        # Client implementation
+│       └── schemas.ts       # Validation schemas
 ├── routes/
-│   ├── _index.tsx            # Main chat interface
-│   ├── api.room.tsx          # Room creation
-│   └── api.room.$roomId.tsx  # WebSocket handling
+│   ├── _index.tsx           # Main chat interface
+│   ├── api.room.tsx         # Room creation
+│   └── api.room.$roomId.tsx # WebSocket handling
 ├── schemas/
-│   └── chat.ts               # Shared Zod schemas
+│   └── chat.ts              # Shared Zod schemas
 ├── stores/
-│   └── chatStore.ts          # Zustand state management
+│   └── chatStore.ts         # Zustand state management
 ├── styles/
-│   └── tailwind.css         # Tailwind imports
+│   └── tailwind.css        # Tailwind imports
 ├── types/
-│   └── chat.ts              # Shared TypeScript types
+│   └── chat.ts             # Shared TypeScript types
 └── utils/
-    ├── errors.ts            # Error handling
-    ├── format.ts            # Date/time formatting
-    └── validation.ts        # Validation utilities
+    ├── errors.ts           # Error handling
+    ├── format.ts           # Date/time formatting
+    └── validation.ts       # Validation utilities
 ```
 
 ## State Management
@@ -67,6 +73,36 @@ const { connected, username } = useConnectionStatus();
 
 // Actions
 const { setUsername, addMessage, reset } = useChatStore();
+```
+
+## UI Components
+
+Built with Radix UI for accessibility and styled with Tailwind:
+
+```typescript
+// Accessible dialog
+<Dialog.Root>
+  <Dialog.Trigger>Leave Room</Dialog.Trigger>
+  <Dialog.Portal>
+    <Dialog.Overlay />
+    <Dialog.Content>
+      <Dialog.Title>Confirm Leave</Dialog.Title>
+      {/* ... */}
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
+
+// Tooltip
+<Tooltip.Provider>
+  <Tooltip.Root>
+    <Tooltip.Trigger>
+      <StatusIndicator />
+    </Tooltip.Trigger>
+    <Tooltip.Content>
+      Connected
+    </Tooltip.Content>
+  </Tooltip.Root>
+</Tooltip.Provider>
 ```
 
 ## Validation
@@ -84,21 +120,23 @@ if (result.success) {
 }
 ```
 
-## Utility Functions
+## Security
 
-### Time Formatting
-```typescript
-// Format timestamp
-formatTime(timestamp)  // "3:45 PM"
-formatTime(timestamp, { showDate: true })  // "Jan 24, 3:45 PM"
-formatTime(timestamp, { showSeconds: true })  // "3:45:30 PM"
+Continuous security analysis using Semgrep:
 
-// Relative time
-formatRelativeTime(timestamp)  // "2 minutes ago"
+```bash
+# Run locally
+npm run security
 
-// Message grouping
-formatMessageDate(timestamp)  // "Today", "Yesterday", or "January 24, 2024"
+# GitHub Actions
+- Runs on all PRs
+- Daily automated scans
+- Custom WebSocket security rules
+- XSS prevention
+- Message validation
 ```
+
+See [SECURITY.md](SECURITY.md) for more details.
 
 ## Setup & Development
 
@@ -175,6 +213,15 @@ npm run deploy
 - [ ] Message reactions
 - [ ] Typing indicators
 - [ ] Read receipts
+- [ ] Voice messages
+- [ ] Video chat
+- [ ] Screen sharing
+- [ ] Message editing
+- [ ] Message deletion
+- [ ] User roles and permissions
+- [ ] Room categories
+- [ ] Custom themes
+- [ ] Internationalization
 
 ## Contributing
 
@@ -183,6 +230,14 @@ npm run deploy
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for details about:
+- Security analysis
+- Vulnerability reporting
+- Best practices
+- Local testing
 
 ## License
 
