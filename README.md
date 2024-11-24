@@ -15,6 +15,25 @@ app/
     RateLimiter.ts   # RateLimiter DO
 ```
 
+Install fnm (optional but recommended):
+```shell
+curl -fsSL https://fnm.vercel.app/install | bash
+```
+
+Create the directory structure:
+
+```shell
+mkdir -p app/{routes,components,durable-objects,types,utils}
+```
+
+Install dependencies:
+
+```shell
+ni @remix-run/cloudflare @cloudflare/workers-types
+```
+Assumes local dev has `npm i -g @antfu/ni` and [fnm](https://github.com/Schniz/fnm).
+
+
 # Cloudflare Edge Chat Demo
 
 This is a demo app written on [Cloudflare Workers](https://workers.cloudflare.com/) utilizing [Durable Objects](https://blog.cloudflare.com/introducing-workers-durable-objects) to implement real-time chat with stored history. This app runs 100% on Cloudflare's edge.
