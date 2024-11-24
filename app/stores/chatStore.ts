@@ -152,7 +152,8 @@ export const useChatStore = create<ChatState>()(
                     roomId: state.roomId,
                 };
             },
-            
+
+            // Actions
             setMessages: (messages) => set({ messages }),
             addMessage: (message) =>
                 set((state) => ({

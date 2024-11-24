@@ -27,11 +27,16 @@ export class RateLimiterClient {
         try {
             let response: Response;
             try {
-                response = await this.limiter.fetch("https://dummy-url", { method: "POST" });
+                // Use internal path structure for rate limiter
+                response = await this.limiter.fetch("/check", {
+                    method: "POST",
+                });
             } catch (err) {
                 // Handle disconnection by getting a new stub
                 this.limiter = this.getLimiterStub();
-                response = await this.limiter.fetch("https://dummy-url", { method: "POST" });
+                response = await this.limiter.fetch("/check", {
+                    method: "POST",
+                });
             }
 
             const cooldown = Number(await response.text());
