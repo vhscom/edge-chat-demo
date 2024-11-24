@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useChatStore } from "~/stores/chatStore";
+import { useChatStore, useConnectionStatus, useUserCount } from "~/stores/chatStore";
 import { useWebSocket } from "~/hooks/useWebSocket";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -10,27 +10,22 @@ interface ChatRoomProps {
 }
 
 export function ChatRoom({ onLeave }: ChatRoomProps) {
-    const {
-        roomId,
-        messages,
-        users,
-        connected,
-        username,
-        setUsername
-    } = useChatStore();
-
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messages = useChatStore(state => state.messages);
+    const connectionStatus = useConnectionStatus();
+    const userCount = useUserCount();
+    const setUsername = useChatStore(state => state.setUsername);
 
     // Ensure roomId exists
-    if (!roomId) throw new Error("Room ID is required");
+    if (!connectionStatus.roomId) throw new Error("Room ID is required");
 
-    const { sendMessage } = useWebSocket(roomId);
+    const { sendMessage } = useWebSocket(connectionStatus.roomId);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    if (!username) {
+    if (!connectionStatus.username) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
@@ -66,9 +61,9 @@ export function ChatRoom({ onLeave }: ChatRoomProps) {
     return (
         <div className="flex flex-col h-screen">
             <RoomHeader
-                roomId={roomId}
-                connected={connected}
-                userCount={users.size}
+                roomId={connectionStatus.roomId}
+                connected={connectionStatus.connected}
+                userCount={userCount}
                 onLeave={onLeave}
             />
 
@@ -79,7 +74,7 @@ export function ChatRoom({ onLeave }: ChatRoomProps) {
 
             <ChatInput
                 onSendMessage={sendMessage}
-                disabled={!connected}
+                disabled={!connectionStatus.connected}
             />
         </div>
     );
