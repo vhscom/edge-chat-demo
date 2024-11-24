@@ -31,7 +31,9 @@ mkdir -p app/{routes,components,durable-objects,types,utils}
 Install dependencies:
 
 ```shell
-ni @remix-run/cloudflare @cloudflare/workers-types @remix-run/react
+ni @remix-run/cloudflare @cloudflare/workers-types
+ni react react-dom @remix-run/react
+ni -D @types/react @types/react-dom typescript
 ```
 
 Configure `tsconfig.json`:
