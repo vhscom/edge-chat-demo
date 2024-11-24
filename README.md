@@ -21,43 +21,84 @@ app/
 ├── components/
 │   └── Chat/
 │       ├── index.ts
-│       ├── Chat.tsx
-│       ├── ChatRoom.tsx
-│       ├── ChatInput.tsx
-│       ├── ChatMessages.tsx
-│       └── RoomHeader.tsx
+│       ├── Chat.tsx         # Main chat container
+│       ├── ChatRoom.tsx     # Room management
+│       ├── ChatInput.tsx    # Message input
+│       ├── ChatMessages.tsx # Message display
+│       ├── RoomHeader.tsx   # Room info & controls
+│       └── RoomJoin.tsx     # Room joining
 ├── durable-objects/
 │   ├── ChatRoom/
 │   │   ├── index.ts
-│   │   ├── ChatRoom.ts
-│   │   └── schemas.ts
+│   │   ├── ChatRoom.ts     # Chat room implementation
+│   │   └── schemas.ts      # Zod schemas
 │   └── RateLimiter/
 │       ├── index.ts
-│       ├── RateLimiter.ts
-│       ├── client.ts
-│       └── schemas.ts
+│       ├── RateLimiter.ts  # Rate limiting logic
+│       ├── client.ts       # Client implementation
+│       └── schemas.ts      # Validation schemas
 ├── routes/
-│   ├── _index.tsx
-│   ├── api.room.tsx
-│   └── api.room.$roomId.tsx
+│   ├── _index.tsx          # Main chat interface
+│   ├── api.room.tsx        # Room creation
+│   └── api.room.$roomId.tsx # WebSocket handling
+├── styles/
+│   └── tailwind.css        # Tailwind imports
 ├── types/
-│   └── chat.ts
+│   └── chat.ts             # Shared TypeScript types
 └── utils/
-    ├── errors.ts
-    └── validation.ts
+    ├── errors.ts           # Error handling
+    └── validation.ts       # Validation utilities
 ```
 
-## Technology Stack
+## API Routes
 
-- **Runtime**: Cloudflare Workers
-- **Framework**: Remix
-- **State Management**: Durable Objects
-- **Real-time Communication**: WebSockets
-- **Type Safety**: TypeScript
-- **Validation**: Zod
-- **Styling**: Tailwind CSS
+### Room Creation
+- `POST /api/room`
+   - Creates a new private room
+   - Returns: Room ID (64-character hex string)
 
-## Setup
+### Room Connection
+- `GET /api/room/:roomId/websocket`
+   - Establishes WebSocket connection
+   - Supports both public (named) and private rooms
+   - Handles message routing and persistence
+
+## WebSocket Protocol
+
+Messages are JSON-encoded and follow these formats:
+
+### Client → Server
+```typescript
+// Join room with username
+{ name: string }
+
+// Send message
+{ message: string }
+```
+
+### Server → Client
+```typescript
+// User joined
+{ joined: string }
+
+// User left
+{ quit: string }
+
+// Chat message
+{ 
+  name: string,
+  message: string,
+  timestamp: number 
+}
+
+// Error
+{ error: string }
+
+// Ready confirmation
+{ ready: true }
+```
+
+## Setup & Development
 
 1. Install dependencies:
 ```bash
@@ -68,7 +109,6 @@ npm install
 ```toml
 name = "edge-chat-demo"
 compatibility_date = "2024-01-01"
-send_metrics = false
 
 main = "build/index.js"
 
@@ -87,89 +127,49 @@ tag = "v1"
 new_classes = ["ChatRoom", "RateLimiter"]
 ```
 
-3. Start development server:
+3. Development:
 ```bash
 npm run dev
 ```
 
-## Development
-
-### Components
-
-The chat interface is built with React components:
-
-- `Chat`: Main container component
-- `ChatRoom`: Handles WebSocket connection and message state
-- `ChatInput`: Message input form
-- `ChatMessages`: Message display and auto-scrolling
-- `RoomHeader`: Room information and controls
-
-### Durable Objects
-
-Two Durable Object classes manage state:
-
-- `ChatRoom`: Manages WebSocket connections and message broadcasting
-- `RateLimiter`: Implements rate limiting logic
-
-### Type Safety
-
-- TypeScript for static type checking
-- Zod schemas for runtime validation
-- Proper error handling and type guards
-
-## Deployment
-
-1. Build the application:
+4. Production build:
 ```bash
 npm run build
 ```
 
-2. Deploy to Cloudflare:
+5. Deploy:
 ```bash
-wrangler deploy
+npm run deploy
 ```
 
-## Architecture
+## Development Notes
 
-The application uses:
+### Durable Objects
+- ChatRoom DO manages WebSocket connections and message persistence
+- RateLimiter DO provides global rate limiting across rooms
+- Both support hibernation for efficient resource usage
 
-1. **Durable Objects** for:
-    - WebSocket connection management
-    - Message persistence
-    - Rate limiting
-    - User presence tracking
+### Room Types
+- Public rooms: Use readable names (max 32 chars)
+- Private rooms: Use 64-character hex IDs
 
-2. **WebSockets** for:
-    - Real-time message delivery
-    - User presence updates
-    - Connection status
-
-3. **Remix** for:
-    - Server-side rendering
-    - API routes
-    - Client-side state management
-
-## Security
-
-- Rate limiting to prevent spam
-- Input validation using Zod
-- Proper error handling
-- Secure WebSocket connections
+### Limitations
+- Message size: 256 characters
+- Username length: 32 characters
+- History: Last 100 messages per room
+- Rate limit: One message per 5 seconds (with 20-second grace period)
 
 ## Future Improvements
 
-- Authentication
-- File sharing
-- Message formatting (markdown, emojis)
-- Thread replies
-- User profiles
-- Admin features
-- Message search
-- Direct messages
-
-## License
-
-MIT
+- [ ] Authentication & user profiles
+- [ ] File sharing
+- [ ] Message formatting (markdown, emojis)
+- [ ] Thread replies
+- [ ] Admin features
+- [ ] Message search
+- [ ] Direct messages
+- [ ] Room persistence configuration
+- [ ] Enhanced rate limiting options
 
 ## Contributing
 
@@ -178,3 +178,27 @@ MIT
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
+
+## License
+
+This project is released under the BSD Zero Clause License (0BSD).
+
+```
+BSD Zero Clause License (0BSD)
+
+Copyright (C) 2024 by VHS <vhsdev@tutanota.com>
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+```
+
+The Zero Clause BSD license is a permissive license that is even more permissive than the MIT license. It allows unlimited freedom with the software without requirements to include the copyright notice, license text, or disclaimer in either source or binary forms.
+

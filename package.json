@@ -1,22 +1,33 @@
 {
   "name": "edge-chat-demo",
-  "description": "An edge chat service that runs on Cloudflare Workers using Durable Objects",
-  "version": "1.0.0",
-  "module": "./src/chat.mjs",
   "private": true,
-  "optionalDependencies": {
-    "wrangler": "^3.90.0"
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "build": "remix build",
+    "dev": "remix dev --manual -c \"npm run start\"",
+    "start": "wrangler dev ./build/index.js",
+    "deploy": "remix build && wrangler deploy",
+    "typecheck": "tsc"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "^4.20241112.0",
-    "@remix-run/cloudflare": "^2.15.0",
-    "@remix-run/react": "^2.15.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "@remix-run/cloudflare": "^2.5.0",
+    "@remix-run/react": "^2.5.0",
+    "isbot": "^4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "typescript": "^5.7.2"
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "@remix-run/dev": "^2.5.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0",
+    "wrangler": "^3.22.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
