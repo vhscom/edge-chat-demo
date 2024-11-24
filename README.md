@@ -1,24 +1,42 @@
-# Remix Chat Demo
+# Edge Chat Demo
+
+A real-time chat application using Cloudflare Workers, Durable Objects, and WebSockets.
+
+## Project Structure
+
+```
+app/
+├── components/
+│   ├── ChatInput.tsx
+│   └── ChatRoom.tsx
+├── durable-objects/
+│   ├── ChatRoom/
+│   │   ├── index.ts
+│   │   ├── schemas.ts
+│   │   └── ChatRoom.ts
+│   └── RateLimiter/
+│       ├── index.ts
+│       ├── client.ts
+│       ├── schemas.ts
+│       └── RateLimiter.ts
+├── routes/
+│   ├── _index.tsx
+│   ├── api.room.tsx
+│   └── api.room.$roomId.tsx
+├── types/
+│   └── chat.ts
+└── utils/
+    ├── errors.ts
+    └── validation.ts
+```
 
 Assumes local dev has `npm i -g @antfu/ni` and [fnm](https://github.com/Schniz/fnm).
 
-```aiignore
-app/
-  routes/
-    _index.tsx       # Main chat UI
-    api/
-      room.tsx       # Room creation/management
-      websocket.tsx  # WebSocket endpoint
-  components/
-    ChatRoom.tsx     # Chat UI component
-    UserList.tsx     # Online users component
-  durable-objects/
-    ChatRoom.ts      # ChatRoom DO
-    RateLimiter/
-      index.ts        # exports both classes
-      RateLimiter.ts  # RateLimiter Durable Object implementation
-      client.ts       # RateLimiterClient implementation
-```
+## Type Validation
+
+The application uses Zod for runtime type checking and validation. Schema definitions can be found in the respective `schemas.ts` files within each Durable Object directory.
+
+## Construction
 
 Install fnm (optional but recommended):
 ```shell
@@ -36,7 +54,7 @@ Install dependencies:
 ```shell
 ni @remix-run/cloudflare @cloudflare/workers-types
 ni react react-dom @remix-run/react
-ni -D @types/react @types/react-dom typescript
+ni -D @types/react @types/react-dom typescript zod
 ```
 
 Configure `tsconfig.json`:
