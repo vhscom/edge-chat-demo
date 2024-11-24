@@ -1,6 +1,7 @@
 /** @type {import('@remix-run/dev').AppConfig} */
 export default {
     ignoredRouteFiles: ["**/.*"],
+    server: "./app/worker.ts",
     serverConditions: ["worker"],
     serverDependenciesToBundle: "all",
     serverMainFields: ["browser", "module", "main"],
@@ -9,11 +10,10 @@ export default {
     serverPlatform: "neutral",
     tailwind: true,
     future: {
-        // Only include future flags that are still relevant
         v3_fetcherPersist: true,
         v3_lazyRouteDiscovery: true,
         v3_relativeSplatPath: true,
         v3_singleFetch: true,
         v3_throwAbortReason: true
-    },
+    }
 };
