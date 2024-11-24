@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20241112.0",
-    "@remix-run/cloudflare": "^2.15.0"
+    "@remix-run/cloudflare": "^2.15.0",
+    "@remix-run/react": "^2.15.0"
   }
 }

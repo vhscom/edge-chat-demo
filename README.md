@@ -1,5 +1,7 @@
 # Remix Chat Demo
 
+Assumes local dev has `npm i -g @antfu/ni` and [fnm](https://github.com/Schniz/fnm).
+
 ```aiignore
 app/
   routes/
@@ -29,10 +31,29 @@ mkdir -p app/{routes,components,durable-objects,types,utils}
 Install dependencies:
 
 ```shell
-ni @remix-run/cloudflare @cloudflare/workers-types
+ni @remix-run/cloudflare @cloudflare/workers-types @remix-run/react
 ```
-Assumes local dev has `npm i -g @antfu/ni` and [fnm](https://github.com/Schniz/fnm).
 
+Configure `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "lib": ["ES2020"],
+    "types": ["@cloudflare/workers-types"],
+    "moduleResolution": "node",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./app/*"]
+    }
+  }
+}
+```
 
 # Cloudflare Edge Chat Demo
 
