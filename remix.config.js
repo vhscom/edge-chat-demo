@@ -10,7 +10,6 @@ export default {
     tailwind: true,
     future: {
         // Only include future flags that are still relevant
-        // Remove all v2 flags as they are now default behavior
         v3_fetcherPersist: true,
         v3_lazyRouteDiscovery: true,
         v3_relativeSplatPath: true,
