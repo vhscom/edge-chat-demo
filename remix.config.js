@@ -9,11 +9,12 @@ export default {
     serverPlatform: "neutral",
     tailwind: true,
     future: {
-        v2_dev: true,
-        v2_errorBoundary: true,
-        v2_headers: true,
-        v2_meta: true,
-        v2_normalizeFormMethod: true,
-        v2_routeConvention: true,
+        // Only include future flags that are still relevant
+        // Remove all v2 flags as they are now default behavior
+        v3_fetcherPersist: true,
+        v3_lazyRouteDiscovery: true,
+        v3_relativeSplatPath: true,
+        v3_singleFetch: true,
+        v3_throwAbortReason: true
     },
 };

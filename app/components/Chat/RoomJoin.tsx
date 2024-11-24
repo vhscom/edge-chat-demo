@@ -1,9 +1,14 @@
+import * as Dialog from '@radix-ui/react-dialog';
 import { useChatStore } from "~/stores/chatStore";
-import { validate } from "~/utils/validation";
+import { validateOrThrow } from "~/utils/validation";
 import { roomIdSchema } from "~/schemas/chat";
 
-export function RoomJoin() {
-    const { setRoomId } = useChatStore();
+interface RoomJoinProps {
+    onCancel?: () => void;
+}
+
+export function RoomJoin({ onCancel }: RoomJoinProps) {
+    const setRoomId = useChatStore(state => state.setRoomId);
 
     const handleCreatePrivateRoom = async () => {
         try {
@@ -11,10 +16,11 @@ export function RoomJoin() {
             if (!response.ok) throw new Error('Failed to create room');
             const roomId = await response.text();
             // Validate the room ID before setting it
-            const validatedId = validate(roomIdSchema, roomId);
+            const validatedId = validateOrThrow(roomIdSchema, roomId);
             setRoomId(validatedId);
         } catch (err) {
             console.error('Failed to create private room:', err);
+            // Could use Radix Toast here to show error
         }
     };
 
@@ -28,10 +34,11 @@ export function RoomJoin() {
                         e.preventDefault();
                         try {
                             const roomId = new FormData(e.currentTarget).get("roomId") as string;
-                            const validatedId = validate(roomIdSchema, roomId);
+                            const validatedId = validateOrThrow(roomIdSchema, roomId);
                             setRoomId(validatedId);
                         } catch (err) {
                             console.error('Invalid room ID:', err);
+                            // Could use Radix Toast here to show error
                         }
                     }}
                     className="space-y-4"
@@ -66,12 +73,36 @@ export function RoomJoin() {
                     </div>
                 </div>
 
-                <button
-                    onClick={handleCreatePrivateRoom}
-                    className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100"
-                >
-                    Create Private Room
-                </button>
+                <Dialog.Root>
+                    <Dialog.Trigger asChild>
+                        <button
+                            onClick={handleCreatePrivateRoom}
+                            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100"
+                        >
+                            Create Private Room
+                        </button>
+                    </Dialog.Trigger>
+                    <Dialog.Portal>
+                        <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+                        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-6 max-w-md w-full">
+                            <Dialog.Title className="text-lg font-bold">
+                                Creating Private Room
+                            </Dialog.Title>
+                            <Dialog.Description className="mt-2 text-gray-600">
+                                Please wait while we create your private room...
+                            </Dialog.Description>
+                        </Dialog.Content>
+                    </Dialog.Portal>
+                </Dialog.Root>
+
+                {onCancel && (
+                    <button
+                        onClick={onCancel}
+                        className="w-full py-2 px-4 text-gray-600 hover:bg-gray-100 rounded"
+                    >
+                        Cancel
+                    </button>
+                )}
             </div>
         </div>
     );

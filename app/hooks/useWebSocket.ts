@@ -1,10 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useChatStore } from '~/stores/chatStore';
-import { validate } from '~/utils/validation';
+import { validateOrThrow } from '~/utils/validation';
 import {
     websocketMessageSchema,
     chatMessageSchema,
-    type WebSocketMessage
 } from '~/schemas/chat';
 
 export function useWebSocket(roomId: string) {
@@ -14,7 +13,6 @@ export function useWebSocket(roomId: string) {
         addMessage,
         addUser,
         removeUser,
-        setUsername,
         username,
     } = useChatStore();
 
@@ -38,12 +36,17 @@ export function useWebSocket(roomId: string) {
         ws.addEventListener('message', (event) => {
             try {
                 const rawData = JSON.parse(event.data);
-                const message = validate(websocketMessageSchema, rawData);
+                const message = validateOrThrow(websocketMessageSchema, rawData);
 
                 switch (message.type) {
-                    case 'chat':
-                        addMessage(message);
+                    case 'chat': {
+                        const timestamp = message.timestamp ?? Date.now();
+                        addMessage({
+                            ...message,
+                            timestamp,
+                        });
                         break;
+                    }
                     case 'join':
                         addUser(message.joined);
                         break;
@@ -57,7 +60,7 @@ export function useWebSocket(roomId: string) {
                         addMessage({
                             name: 'System',
                             message: message.content,
-                            timestamp: message.timestamp,
+                            timestamp: message.timestamp ?? Date.now(),
                         });
                         break;
                 }
@@ -75,20 +78,20 @@ export function useWebSocket(roomId: string) {
     }, [roomId, username, setConnected, addMessage, addUser, removeUser]);
 
     useEffect(() => {
-        const cleanup = connect();
-        return cleanup;
+        return connect();
     }, [connect]);
 
     const sendMessage = useCallback((content: string) => {
-        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN || !username) {
             return;
         }
 
         try {
-            const message = validate(chatMessageSchema, {
+            const timestamp = Date.now();
+            const message = validateOrThrow(chatMessageSchema, {
                 name: username,
                 message: content,
-                timestamp: Date.now(),
+                timestamp,
             });
 
             socketRef.current.send(JSON.stringify(message));

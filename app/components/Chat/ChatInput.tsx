@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import * as Popover from '@radix-ui/react-popover';
-import { validate } from "~/utils/validation";
+import { validateOrThrow } from "~/utils/validation";
 import { messageContentSchema } from "~/schemas/chat";
 
 interface ChatInputProps {
@@ -19,7 +19,7 @@ export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
         if (disabled || !message.trim()) return;
 
         try {
-            const validatedMessage = validate(messageContentSchema, message);
+            const validatedMessage = validateOrThrow(messageContentSchema, message);
             onSendMessage(validatedMessage);
             setMessage("");
         } catch (err) {
